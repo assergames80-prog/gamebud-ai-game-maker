@@ -11,6 +11,8 @@ npm install
 npm start
 ```
 
+If `npm start` says Electron is not fully installed, it downloads it automatically and carries on. If that download is blocked, the message explains what to try (the usual causes are a VPN, proxy or antivirus, or a folder inside OneDrive).
+
 Then press **Ctrl+Shift+K** (**Cmd+Shift+K** on macOS) to open the hidden developer panel and paste your Gemini API key. A key can also come from the `GEMINI_API_KEY` environment variable. A saved key wins over the environment variable.
 
 ```bash
@@ -78,6 +80,7 @@ src/main/        Electron main process
   store.js         atomic JSON files, one per project
   prompts.js       game-builder system prompt, texture styles
   preload.js       the small API exposed to the UI
+scripts/start.js Launcher that repairs a broken Electron install
 src/renderer/    The UI (plain HTML/CSS/JS, no build step)
 src/shared/      Texture-reference helper used by both sides
 test/            Node test runner tests with a mock Gemini server
