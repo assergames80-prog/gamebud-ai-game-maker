@@ -1,0 +1,37 @@
+name: Release Windows app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/eager-hawking-gwpshc]
+    paths:
+      - 'src/**'
+      - 'scripts/build-windows.js'
+      - 'package.json'
+      - '.github/workflows/release-windows.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm test
+      - run: node scripts/build-windows.js
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=v1.0.0
+          NOTES="Windows build of Gamebud. Unzip Gamebud-win-x64.zip and double-click Gamebud.exe. Nothing to install. Press Ctrl+Shift+K in the app to add your Gemini API key."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/Gamebud-win-x64.zip --clobber
+          else
+            gh release create "$TAG" dist/Gamebud-win-x64.zip --target "$GITHUB_SHA" --title "Gamebud 1.0.0 for Windows" --notes "$NOTES"
+          fi
