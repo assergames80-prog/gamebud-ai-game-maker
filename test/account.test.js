@@ -66,3 +66,14 @@ test('parseChatText', () => {
   assert.throws(() => parseChatText('x\n```html\n<html>'), { code: 'TRUNCATED' });
   assert.throws(() => parseChatText('x\n```js\nconst a = 1\n```'), { code: 'EMPTY' });
 });
+
+test('prompt teaches the pinned Three.js import map and nothing else is allowed by CSP', () => {
+  const { SYSTEM } = require('../src/main/prompts');
+  const { THREE_BASE, THREE_VERSION } = require('../src/main/cdn');
+  assert.match(THREE_VERSION, /^\d+\.\d+\.\d+$/);
+  assert.ok(SYSTEM.includes(`"three":"${THREE_BASE}build/three.module.js"`));
+  assert.ok(SYSTEM.includes(`"three/addons/":"${THREE_BASE}examples/jsm/"`));
+  const src = require('fs').readFileSync(require('path').join(__dirname, '../src/main/main.js'), 'utf8');
+  assert.match(src, /script-src 'unsafe-inline' 'unsafe-eval' \$\{THREE_BASE\}/);
+  assert.doesNotMatch(src, /script-src[^;]*https:(?!\/\/cdn)/);
+});

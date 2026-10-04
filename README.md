@@ -90,7 +90,7 @@ Security notes:
 
 - API calls happen in the main process. The key never reaches the UI.
 - The UI runs with `contextIsolation`, `sandbox`, and a strict CSP.
-- Generated games run in a sandboxed iframe served from a `gamebud://` protocol with its own CSP: scripts can run, but they have no network, no storage, and no access to the app.
+- Generated games run in a sandboxed iframe served from a `gamebud://` protocol with its own CSP: scripts can run, but they have no storage, no access to the app, and no network except one: they may load Three.js from the pinned jsDelivr folder in `src/main/cdn.js`. 3D games use an import map for it, so they need an internet connection to start. To change the version, edit `THREE_VERSION` there.
 - Textures are referenced in games as `texture://<name>` and turned into inline images when a game is previewed or exported, so exported files are fully standalone.
 
 Data lives in Electron's user-data folder (`account.json`, `secrets.json`, `projects/`).

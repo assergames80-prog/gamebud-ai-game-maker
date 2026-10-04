@@ -8,6 +8,7 @@ const { app, BrowserWindow, Menu, dialog, ipcMain, protocol, session, safeStorag
 if (process.env.GAMEBUD_USER_DATA) app.setPath('userData', process.env.GAMEBUD_USER_DATA);
 
 const gemini = require('./gemini');
+const { THREE_BASE } = require('./cdn');
 const { JsonFile, Projects, ID } = require('./store');
 const { Account } = require('./billing');
 const { Secrets } = require('./secrets');
@@ -15,11 +16,13 @@ const { Service } = require('./service');
 const { slugify } = require('../shared/textures');
 
 // `gamebud://play/<project>` serves the game, `gamebud://tex/<project>/<texture>` serves images.
-// Games get their own locked-down CSP: they can run code, but cannot reach the network.
+// Games get their own locked-down CSP: they can run code, but cannot reach the network
+// (except to fetch Three.js).
 protocol.registerSchemesAsPrivileged([{ scheme: 'gamebud', privileges: { standard: true, secure: true } }]);
 
+// Scripts may also load from the pinned Three.js folder on jsDelivr (and nowhere else).
 const GAME_CSP =
-  "default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'; style-src 'unsafe-inline'; " +
+  `default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' ${THREE_BASE}; style-src 'unsafe-inline'; ` +
   "img-src data: blob:; media-src data: blob:; font-src data:; connect-src data: blob:; worker-src blob:";
 const DEV_WINDOW_MS = 10 * 60 * 1000;
 
