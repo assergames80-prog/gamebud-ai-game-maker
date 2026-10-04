@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: gamebud:; frame-src gamebud:; font-src 'self'; connect-src 'none'">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Gamebud</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="assets/logo.svg" alt="" width="28" height="28">
+        <span>Gamebud</span>
+      </div>
+      <button id="newGame" class="btn btn-primary btn-block" type="button"></button>
+      <div class="side-label">Your games</div>
+      <nav id="projectList" class="project-list" aria-label="Your games"></nav>
+      <div id="account" class="account"></div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <input id="title" class="title-input" type="text" maxlength="60" spellcheck="false" aria-label="Game name">
+        <div class="tabs" role="tablist" id="tabs"></div>
+        <div class="actions" id="actions"></div>
+      </header>
+
+      <div class="content">
+        <section class="chat" aria-label="Chat">
+          <div id="messages" class="messages" aria-live="polite"></div>
+          <div class="composer-wrap">
+            <div id="outOfCredits" class="out-of-credits" hidden></div>
+            <form id="composer" class="composer">
+              <textarea id="input" rows="1" maxlength="4000" placeholder="Describe a game or a change…" aria-label="Message"></textarea>
+              <button id="send" class="send" type="submit" aria-label="Send"></button>
+            </form>
+            <div class="composer-hint"><span>Enter to send · Shift+Enter for a new line</span><span id="costHint"></span></div>
+          </div>
+        </section>
+
+        <section class="stage" aria-label="Preview">
+          <div id="stageBar" class="stage-bar" hidden></div>
+          <div id="panelGame" class="panel"></div>
+          <div id="panelCode" class="panel" hidden></div>
+          <div id="panelTextures" class="panel" hidden></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="modalRoot"></div>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <script src="../shared/textures.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

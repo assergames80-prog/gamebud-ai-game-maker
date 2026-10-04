@@ -1,0 +1,16 @@
+{
+  "name": "gamebud",
+  "productName": "Gamebud",
+  "version": "1.0.0",
+  "description": "Gamebud — describe a game, play it in seconds.",
+  "main": "src/main/main.js",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "devDependencies": {
+    "electron": "^39.0.0"
+  }
+}
