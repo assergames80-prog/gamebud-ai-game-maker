@@ -33,7 +33,17 @@ class GeminiError extends Error {
   }
 }
 
-const BLOCK_REASONS = new Set(['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII', 'IMAGE_SAFETY', 'RECITATION']);
+const BLOCK_REASONS = new Set(['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII', 'IMAGE_SAFETY']);
+
+// Game code is easy to mistake for existing code, so the model sometimes stops with
+// RECITATION. That is not a refusal: keep what came back, or ask again once.
+const SAFETY_SETTINGS = [
+  'HARM_CATEGORY_HARASSMENT',
+  'HARM_CATEGORY_HATE_SPEECH',
+  'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+  'HARM_CATEGORY_DANGEROUS_CONTENT',
+].map((category) => ({ category, threshold: 'BLOCK_ONLY_HIGH' }));
+const ORIGINAL_NUDGE = '\n\n(Write your own original implementation from scratch, with your own structure and naming.)';
 
 async function call({ apiKey, model, body, base = DEFAULT_BASE, fetchImpl = fetch, timeoutMs = TIMEOUT_MS, signal }) {
   if (!apiKey) throw new GeminiError('NO_KEY', 'No API key configured');
@@ -111,22 +121,41 @@ function parseChatText(text) {
 }
 
 async function chat(opts, { system, contents }) {
-  const json = await call({
-    ...opts,
-    model: CHAT_MODEL,
-    body: {
-      systemInstruction: { parts: [{ text: system }] },
-      contents,
-      generationConfig: { thinkingConfig: { thinkingLevel: 'high' }, maxOutputTokens: 32768 },
-    },
-  });
-  const cand = candidateOf(json);
-  const text = textOf(cand);
-  if (cand.finishReason === 'MAX_TOKENS') throw new GeminiError('TRUNCATED', 'Hit max output tokens');
-  if (!text.trim()) throw new GeminiError('EMPTY', 'Empty text');
-  const out = parseChatText(text);
-  if (!out.reply && !out.html) throw new GeminiError('EMPTY', 'Nothing to show');
-  return out;
+  let lastReason = '';
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let turns = contents;
+    if (attempt > 0) {
+      // Second try: ask for an original implementation.
+      const last = contents[contents.length - 1];
+      turns = [...contents.slice(0, -1), { ...last, parts: [{ text: last.parts[0].text + ORIGINAL_NUDGE }] }];
+    }
+    const json = await call({
+      ...opts,
+      model: CHAT_MODEL,
+      body: {
+        systemInstruction: { parts: [{ text: system }] },
+        contents: turns,
+        generationConfig: { thinkingConfig: { thinkingLevel: 'high' }, maxOutputTokens: 32768 },
+        safetySettings: SAFETY_SETTINGS,
+      },
+    });
+    const cand = candidateOf(json);
+    const text = textOf(cand);
+    if (cand.finishReason === 'MAX_TOKENS') throw new GeminiError('TRUNCATED', 'Hit max output tokens');
+
+    if (text.trim()) {
+      try {
+        const out = parseChatText(text);
+        if (out.reply || out.html) return out;
+      } catch (err) {
+        // A cut-off or malformed answer after RECITATION is worth one more try.
+        if (cand.finishReason !== 'RECITATION' || attempt > 0) throw err;
+      }
+    }
+    lastReason = cand.finishReason || 'empty';
+    if (cand.finishReason !== 'RECITATION' && cand.finishReason !== 'OTHER' && text.trim()) break;
+  }
+  throw new GeminiError('EMPTY', `No usable answer (finish reason: ${lastReason})`);
 }
 
 // Cheap connectivity check for the developer panel. Surfaces the real error.

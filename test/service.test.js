@@ -188,3 +188,42 @@ test('playback html gets the canvas reset first, so game CSS can still override 
   assert.equal(html.split('canvas{display:block}').length, 2);
   assert.equal(projects.get(p.id).game.html.includes('display:block'), false); // stored file stays untouched
 });
+
+test('RECITATION is retried with an originality nudge, not reported as a refusal', async () => {
+  const m = await mockGemini((c, n) => (n === 1 ? textReply('', { finishReason: 'RECITATION' }) : ok));
+  const { service, projects } = setup(m.base);
+  const p = projects.create();
+  const r = await service.sendChat(p.id, 'make snake');
+  m.close();
+  assert.equal(r.ok, true);
+  assert.equal(m.calls.length, 2);
+  assert.match(m.calls[1].body.contents.at(-1).parts[0].text, /original implementation/);
+  assert.doesNotMatch(m.calls[0].body.contents.at(-1).parts[0].text, /original implementation/);
+  assert.equal(r.account.credits, 45);
+});
+
+test('RECITATION that still returns a finished game is used as-is; repeated RECITATION is masked, not "blocked"', async () => {
+  let mode = 'full';
+  const m = await mockGemini(() => (mode === 'full' ? textReply('Done.\n```html\n' + GAME + '\n```', { finishReason: 'RECITATION' }) : textReply('', { finishReason: 'RECITATION' })));
+  const { service, projects } = setup(m.base);
+  const p = projects.create();
+  const a = await service.sendChat(p.id, 'make pong');
+  assert.equal(a.ok, true);
+  assert.equal(m.calls.length, 1);
+  mode = 'empty';
+  const b = await service.sendChat(p.id, 'again');
+  m.close();
+  assert.equal(b.code, 'DEMAND');
+  assert.equal(b.account.credits, 45);
+  assert.match(service.lastError.message, /RECITATION/);
+});
+
+test('chat requests carry relaxed safety settings so words like "shooter" are not blocked', async () => {
+  const m = await mockGemini(() => ok);
+  const { service, projects } = setup(m.base);
+  await service.sendChat(projects.create().id, 'space shooter');
+  m.close();
+  const ss = m.calls[0].body.safetySettings;
+  assert.equal(ss.length, 4);
+  assert.ok(ss.every((x) => x.threshold === 'BLOCK_ONLY_HIGH'));
+});
